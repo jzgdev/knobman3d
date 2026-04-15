@@ -1799,6 +1799,19 @@ function KnobData(ap) {
     Def(te,"mask1ena",p.eff.mask1ena,false);
   }
 }
+function CreateWebGLRenderer(width,height){
+  var testCanvas=document.createElement("canvas");
+  var gl=testCanvas.getContext("webgl",{alpha:true,antialias:true}) ||
+         testCanvas.getContext("experimental-webgl",{alpha:true,antialias:true});
+  if(!gl)
+    throw new Error("WebGL is unavailable in this browser or environment.");
+  var renderer=new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  renderer.setClearColor(0x000000,0);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setSize(width,height);
+  return renderer;
+}
 function App() {
   app=this;
   window.app=this;
@@ -1838,11 +1851,15 @@ function App() {
 //  this.camera=new THREE.PerspectiveCamera(this.cameraparam.fov, this.cameraparam.aspect, this.cameraparam.near, this.cameraparam.far);
   this.camera=new THREE.OrthographicCamera(-100,100,100,-100,0,200);
   this.camera.position.set( 0, 0, 200 );
-  this.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-  this.renderer.setClearColor(0x000000,0);
-  this.renderer.shadowMap.enabled = true;
-  this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  this.renderer.setSize(this.width, this.height);
+  this.renderer = null;
+  this.webglError = "";
+  try{
+    this.renderer = CreateWebGLRenderer(this.width,this.height);
+  }
+  catch(err){
+    this.webglError = err && err.message ? err.message : String(err);
+    console.warn("KnobMan3D: WebGL initialization failed, preview/export rendering is disabled.",err);
+  }
   this.rendercv=document.getElementById("render");
   this.renderctx=this.rendercv.getContext("2d");
 //  document.getElementById("prevpane").appendChild(this.renderer.domElement );
@@ -1934,6 +1951,18 @@ function App() {
   this.layer[1]=new Layer(this,1);
   this.layer[2]=new Layer(this,2);
   this.Render=function(){
+    if(!this.renderer){
+      this.renderctx.clearRect(0,0,this.width,this.height);
+      this.renderctx.fillStyle="#1f1f1f";
+      this.renderctx.fillRect(0,0,this.width,this.height);
+      this.renderctx.fillStyle="#f2d06b";
+      this.renderctx.font="bold 15px Ubuntu, sans-serif";
+      this.renderctx.fillText("WebGL unavailable",52,110);
+      this.renderctx.fillStyle="#ddd";
+      this.renderctx.font="12px Ubuntu, sans-serif";
+      this.renderctx.fillText("The editor still loads, but 3D preview/export is disabled.",14,132);
+      return;
+    }
     if(this.lighting.shadow==0){
       this.renderctx.globalAlpha=1;
       this.renderctx.clearRect(0,0,256,256);
