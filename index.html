@@ -1800,6 +1800,8 @@ function KnobData(ap) {
   }
 }
 function App() {
+  app=this;
+  window.app=this;
   this.colorPicker=new ColorPicker();
   this.colorPicker.callback=function(c){
     app.Setup("color",c);
@@ -1844,7 +1846,7 @@ function App() {
   this.rendercv=document.getElementById("render");
   this.renderctx=this.rendercv.getContext("2d");
 //  document.getElementById("prevpane").appendChild(this.renderer.domElement );
-  document.getElementById("prevpane").childNodes[1].style.border="1px solid #888";
+  this.rendercv.style.border="1px solid #888";
   this.texture={
     "Aura":{file:"Aura.jpg",image:null,tex:null},
     "Checkers":{file:"Checkers.bmp",image:null,tex:null},
@@ -1869,7 +1871,6 @@ function App() {
   for(var i in this.texture){
     var t=this.texture[i];
     t.image=new Image();
-    t.image.src="texture/"+t.file;
     t.image.t=t;
     t.image.onload=function(){
       this.t.tex=new THREE.Texture(this.t.image);
@@ -1883,7 +1884,12 @@ function App() {
 //      console.log(this.t.tex);
 //      console.log(app.texture["Sand"].tex);
 
-    }
+    };
+    t.image.onerror=function(){
+      if(--app.texloadcnt==0)
+        app.TexLoadComplete();
+    };
+    t.image.src="texture/"+t.file;
   }
 /*
   this.texloader=new THREE.TextureLoader();
@@ -2012,11 +2018,13 @@ function App() {
     this.New(false);
     Set(app,"camx",k.camx,"camx","v");
     Set(app,"camy",k.camy,"camy","v");
-    Set(app,"ambient",k.ambient,"ambient","v");
-    Set(app,"intensity",k.intensity,"intensity","v");
-    Set(app,"shadow",k.shadow,"shadow","v");
+    Set(app.lighting,"ambient",k.ambient,"ambient","v");
+    Set(app.lighting,"intensity",k.intensity,"intensity","v");
+    Set(app.lighting,"shadow",k.shadow,"shadow","v");
+    Set(app.lighting,"lightdir",k.lightdir,"lightdir","v");
+    Set(app.lighting,"lightoffset",k.lightoffset,"lightoffset","v");
     Set(app,"camzoom",k.camzoom,"camzoom","v");
-    Set(app,"exporttype",k.type,"exporttype","v");
+    Set(app,"exporttype",k.exporttype,"exporttype","v");
     Set(app,"exportwidth",k.width,"exportwidth","v");
     Set(app,"exportheight",k.height,"exportheight","v");
     Set(app,"exportframes",k.frames,"exportframes","v");
@@ -2083,6 +2091,20 @@ function App() {
       }
       app.layer[i]=null;
     }
+    if(typeof(k.camx)!="undefined")
+      document.getElementById("camxsli").value=k.camx;
+    if(typeof(k.camy)!="undefined")
+      document.getElementById("camysli").value=k.camy;
+    if(typeof(k.ambient)!="undefined")
+      app.lighting.Setup("ambient",k.ambient);
+    if(typeof(k.intensity)!="undefined")
+      app.lighting.Setup("intensity",k.intensity);
+    if(typeof(k.shadow)!="undefined")
+      app.lighting.Setup("shadow",k.shadow);
+    if(typeof(k.lightdir)!="undefined")
+      app.lighting.Setup("lightdir",k.lightdir);
+    if(typeof(k.lightoffset)!="undefined")
+      app.lighting.Setup("lightoffset",k.lightoffset);
     app.SetupCam();
     app.SelLayer(0);
     app.UpdateLayerPane();
@@ -2752,7 +2774,8 @@ function App() {
 
 }
 function Init(){
-  window.app=new App();
+  app=new App();
+  window.app=app;
   var s=location.search.substr(1).split("&");
   for(var i=0;i<s.length;++i){
     if(s[i].indexOf("d=")==0){
